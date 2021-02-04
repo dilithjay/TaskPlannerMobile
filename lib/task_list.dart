@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:time_planner/task_detail.dart';
 import 'dart:async';
 import 'database_helper.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TaskList extends StatefulWidget {
   @override
@@ -11,6 +13,8 @@ class TaskList extends StatefulWidget {
 
 class _TaskListState extends State<TaskList> {
   DatabaseHelper databaseHelper = DatabaseHelper();
+  final DateFormat formatter = DateFormat('dd-MM-yyyy');
+  String _lastUpdate;
   Map<String, dynamic> tasksInDate;
   int count = 0;
   ListView cardList;
@@ -186,6 +190,25 @@ class _TaskListState extends State<TaskList> {
               );
       },
     );
+  }
+
+  void resetDailyTasks() {
+    final fPrefs = SharedPreferences.getInstance();
+    fPrefs.then((prefs) {
+      setState(() {
+        String day = prefs.getString('day');
+        if (day == null) {
+          _lastUpdate = formatter.format(DateTime.now());
+          prefs.setString('day', _lastUpdate);
+        } else {
+          _lastUpdate = day;
+          if (DateTime.now().isAfter(formatter.parse(_lastUpdate))) {
+            Future<int> res = databaseHelper.resetDailyTasks();
+            res.then((result) {});
+          }
+        }
+      });
+    });
   }
 
   int getDateCount(List<Map<String, dynamic>> data) {
