@@ -15,6 +15,7 @@ class _TaskDetailState extends State<TaskDetail> {
   final _myController = TextEditingController();
   List<String> daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   DatabaseHelper databaseHelper = DatabaseHelper();
+  bool daily = false;
 
   @override
   Widget build(BuildContext context) {
@@ -52,15 +53,24 @@ class _TaskDetailState extends State<TaskDetail> {
             ),
             Row(
               children: [
+                Text("Daily:"),
+                Checkbox(
+                  value: daily,
+                  onChanged: (bool val) {
+                    setState(() {
+                      daily = val;
+                    });
+                  },
+                ),
                 Expanded(
                   child: RaisedButton(
-                    onPressed: () => _selectDate(context),
+                    onPressed: () => daily ? () {} : _selectDate(context),
                     child: Text(
                       'Select date',
                       style: TextStyle(
                           color: Colors.black, fontWeight: FontWeight.bold),
                     ),
-                    color: Colors.greenAccent,
+                    color: daily ? Colors.grey : Colors.greenAccent,
                   ),
                 ),
                 Padding(
@@ -78,13 +88,19 @@ class _TaskDetailState extends State<TaskDetail> {
             ),
             RaisedButton(
               onPressed: () {
-                Task task = new Task(
-                    _myController.text,
-                    0,
-                    daysOfWeek[_selectedDate.weekday - 1] +
-                        ' ' +
-                        formatter.format(_selectedDate));
-                Future<int> result = databaseHelper.insertTask(task);
+                Future<int> result;
+                if (daily) {
+                  result =
+                      databaseHelper.insertDailyTask(_myController.text, 0);
+                } else {
+                  Task task = new Task(
+                      _myController.text,
+                      0,
+                      daysOfWeek[_selectedDate.weekday - 1] +
+                          ' ' +
+                          formatter.format(_selectedDate));
+                  result = databaseHelper.insertTask(task);
+                }
                 result.then((res) {});
                 _myController.clear();
               },
