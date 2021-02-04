@@ -17,8 +17,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// TODO: Make it so that all tasks of the same day are in the same card
-
 /*
 void main() {
   runApp(MaterialApp(home: MyApp()));
