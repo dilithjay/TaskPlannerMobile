@@ -65,7 +65,8 @@ class _TaskListState extends State<TaskList> {
             ? ListView.builder(
                 itemCount: getDateCount(snapshot.data),
                 itemBuilder: (_, int position) {
-                  final String date = dateList.toList()[position];
+                  final String date =
+                      dateList.toList().reversed.toList()[position];
                   List<Map<String, dynamic>> lst = [];
                   for (var i in snapshot.data) {
                     if (i['date'] == date) {
