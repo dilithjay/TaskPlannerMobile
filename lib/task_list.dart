@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:time_planner/task_detail.dart';
+import 'package:task_planner/task_detail.dart';
 import 'dart:async';
 import 'database_helper.dart';
 import 'package:sqflite/sqflite.dart';

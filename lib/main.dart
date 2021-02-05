@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TimePlanner',
+      title: 'Task Planner',
       theme: ThemeData(primarySwatch: Colors.teal),
       home: TaskList(),
     );
