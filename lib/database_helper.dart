@@ -26,6 +26,7 @@ class DatabaseHelper {
     return _database;
   }
 
+  // Get Singleton instance of Database
   Future<Database> initializeDatabase() async {
     Directory directory = await getApplicationDocumentsDirectory();
     String path = directory.path + 'tasks.db';
@@ -34,6 +35,7 @@ class DatabaseHelper {
     return tasksDatabase;
   }
 
+  // Create tables of database
   void _createDb(Database db, int newVersion) async {
     await db.execute(
         'CREATE table $taskTable (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, checked INTEGER, date TEXT)');
@@ -41,42 +43,50 @@ class DatabaseHelper {
         'CREATE table $dailyTaskTable (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, checked INTEGER)');
   }
 
+  // Get a list of all general tasks
   Future<List<Map<String, dynamic>>> getTaskMapList() async {
     Database db = await this.database;
-    return await db.query(taskTable, orderBy: 'date ASC');
+    return await db.query(taskTable);
   }
 
+  // Get a list of all daily tasks
   Future<List<Map<String, dynamic>>> getDailyTaskMapList() async {
     Database db = await this.database;
     return await db.query(dailyTaskTable);
   }
 
+  // Insert new general task
   Future<int> insertTask(Task task) async {
     Database db = await this.database;
     return await db.insert(taskTable, task.toMap());
   }
 
+  // Insert new daily task
   Future<int> insertDailyTask(String task, int checked) async {
     Database db = await this.database;
     return await db.insert(dailyTaskTable, {'task': task, 'checked': checked});
   }
 
+  // Delete general task
   Future<int> deleteTask(int id) async {
     var db = await this.database;
     return await db.delete(taskTable, where: 'id = ?', whereArgs: [id]);
   }
 
+  // Delete daily task
   Future<int> deleteDailyTask(int id) async {
     var db = await this.database;
     return await db.delete(dailyTaskTable, where: 'id = ?', whereArgs: [id]);
   }
 
+  // Change check state of checkbox of daily task
   Future<int> changeCheckTask(int id, int state) async {
     var db = await this.database;
     Map<String, dynamic> update = {'checked': state};
     return await db.update(taskTable, update, where: 'id = ?', whereArgs: [id]);
   }
 
+  // Change check state of checkbox of daily task
   Future<int> changeCheckDailyTask(int id, int state) async {
     var db = await this.database;
     Map<String, dynamic> update = {'checked': state};
@@ -84,28 +94,33 @@ class DatabaseHelper {
         .update(dailyTaskTable, update, where: 'id = ?', whereArgs: [id]);
   }
 
+  // Reset daily tasks to unchecked
   Future<int> resetDailyTasks() async {
     var db = await this.database;
     Map<String, dynamic> update = {'checked': 0};
     return await db.update(dailyTaskTable, update);
   }
 
+  // Get a list of dates that contain tasks
   Future<List<Map<String, dynamic>>> getTaskDates() async {
     var db = await this.database;
     return await db.rawQuery("SELECT DISTINCT date FROM task_table");
   }
 
+  // Get a list of tasks on a given date
   Future<List<Map<String, dynamic>>> getTaskOnDate(String date) async {
     var db = await this.database;
     return await db
         .rawQuery("SELECT DISTINCT date FROM task_table WHERE date='$date'");
   }
 
+  // Empty given table
   void clearTable(String table) async {
     var db = await this.database;
     await db.rawQuery('DELETE FROM $table');
   }
 
+  // Delete the database
   void deleteDB() {
     var databasesPath = getDatabasesPath();
     databasesPath.then((dbpath) {
