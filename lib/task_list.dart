@@ -54,7 +54,7 @@ class _TaskListState extends State<TaskList> {
           BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "Daily"),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.greenAccent,
+        selectedItemColor: Colors.lightBlue,
         onTap: _onItemTapped,
       ),
     );
