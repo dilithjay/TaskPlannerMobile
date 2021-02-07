@@ -11,6 +11,7 @@ class DatabaseHelper {
 
   String taskTable = 'task_table';
   String dailyTaskTable = 'daily_table';
+  String historyTable = "history_table";
 
   factory DatabaseHelper() {
     if (_databaseHelper == null) {

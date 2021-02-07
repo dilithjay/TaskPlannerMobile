@@ -20,6 +20,7 @@ class _TaskListState extends State<TaskList> {
   ListView cardList;
   Map<String, bool> checked = Map();
   Map<String, bool> dailyChecked = Map();
+  List<Map<String, dynamic>> todayTasks = [];
   List<dynamic> dailyTasks = [];
   int _selectedIndex = 0;
   Set<String> dateList = {};
@@ -38,6 +39,7 @@ class _TaskListState extends State<TaskList> {
       tasksInDate = Map();
       updateDailyListView();
       updateListView();
+      resetDailyTasks();
     }
 
     return Scaffold(
@@ -53,7 +55,7 @@ class _TaskListState extends State<TaskList> {
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.all_out), label: "General"),
-          BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "Daily"),
+          BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "Today"),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.lightBlue,
@@ -81,6 +83,10 @@ class _TaskListState extends State<TaskList> {
                       checked[i['id'].toString()] = (i['checked'] == 1);
                     }
                   }
+                  if (date != null &&
+                      date.substring(4) == formatter.format(DateTime.now())) {
+                    todayTasks = lst;
+                  }
 
                   return Card(
                       color: Colors.white,
@@ -97,10 +103,9 @@ class _TaskListState extends State<TaskList> {
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold),
                                 ),
-                                Text("  " +
-                                    (date == null
-                                        ? '0.0.0'
-                                        : date.substring(3)))
+                                date == null
+                                    ? SizedBox.shrink()
+                                    : Text("  " + (date.substring(3)))
                               ],
                             ),
                           ),
@@ -131,9 +136,13 @@ class _TaskListState extends State<TaskList> {
                                     ),
                                     key: UniqueKey(),
                                     onDismissed: (DismissDirection dd) {
-                                      databaseHelper.deleteTask(i['id']);
-                                      setState(() {
-                                        deletedID = i['id'];
+                                      var res =
+                                          databaseHelper.deleteTask(i['id']);
+                                      res.then((result) {
+                                        todayTasks.remove(i);
+                                        setState(() {
+                                          deletedID = i['id'];
+                                        });
                                       });
                                     },
                                   )
@@ -155,68 +164,86 @@ class _TaskListState extends State<TaskList> {
   }
 
   Widget getDailyFutureBuilder() {
-    //resetDailyTasks();
+    int n = todayTasks.length;
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: databaseHelper.getDailyTaskMapList(),
       initialData: List(),
       builder: (context, snapshot) {
         return snapshot.hasData
             ? ListView.builder(
-                itemCount: snapshot.data.length,
+                itemCount: snapshot.data.length + n,
                 itemBuilder: (_, int position) {
                   List<Map<String, dynamic>> lst = [];
                   for (var i in snapshot.data) {
                     lst.add(i);
                     dailyChecked[i['id'].toString()] = (i['checked'] == 1);
                   }
-                  var i = lst[position];
-                  return Card(
-                      color: Colors.white,
-                      elevation: 2.0,
-                      child: deletedIDDaily != i['id']
-                          ? Dismissible(
-                              direction: DismissDirection.endToStart,
-                              child: CheckboxListTile(
-                                value: dailyChecked[i['id'].toString()],
-                                onChanged: (bool val) {
-                                  Future<int> result =
-                                      databaseHelper.changeCheckDailyTask(
-                                          i['id'], val ? 1 : 0);
-                                  result.then((res) {});
+                  var i =
+                      position < n ? todayTasks[position] : lst[position - n];
+                  return position < n
+                      ? Card(
+                          color: Colors.white,
+                          child: CheckboxListTile(
+                            title: Text(i['task']),
+                            onChanged: (val) {
+                              Future<int> result = databaseHelper
+                                  .changeCheckTask(i['id'], val ? 1 : 0);
+                              result.then((res) {
+                                setState(() {
+                                  checked[i['id'].toString()] = val;
+                                });
+                              });
+                            },
+                            value: checked[i['id'].toString()],
+                          ),
+                        )
+                      : Card(
+                          color: Colors.amber,
+                          child: deletedIDDaily != i['id']
+                              ? Dismissible(
+                                  direction: DismissDirection.endToStart,
+                                  child: CheckboxListTile(
+                                    value: dailyChecked[i['id'].toString()],
+                                    onChanged: (bool val) {
+                                      Future<int> result =
+                                          databaseHelper.changeCheckDailyTask(
+                                              i['id'], val ? 1 : 0);
+                                      result.then((res) {});
 
-                                  setState(() {
-                                    checked[i['id'].toString()] = val;
-                                  });
-                                },
-                                title: Text(i['task']),
-                              ),
-                              /*background: Container(
+                                      setState(() {
+                                        checked[i['id'].toString()] = val;
+                                      });
+                                    },
+                                    title: Text(i['task']),
+                                  ),
+                                  /*background: Container(
                                 color: Colors.greenAccent[400],
                                 padding: EdgeInsets.symmetric(horizontal: 20),
                                 alignment: AlignmentDirectional.centerStart,
                                 child: Icon(Icons.done),
                               ),*/
-                              background: Container(
-                                color: Colors.red,
-                                padding: EdgeInsets.symmetric(horizontal: 20),
-                                alignment: AlignmentDirectional.centerEnd,
-                                child: Icon(Icons.delete_outline),
-                              ),
-                              key: UniqueKey(),
-                              onDismissed: (DismissDirection dd) {
-                                Future<int> res =
-                                    databaseHelper.deleteDailyTask(i['id']);
-                                res.then((result) {
-                                  setState(() {
-                                    deletedIDDaily = i['id'];
-                                  });
-                                });
-                                /*if (dd == DismissDirection.startToEnd) {
+                                  background: Container(
+                                    color: Colors.red,
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 20),
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: Icon(Icons.delete_outline),
+                                  ),
+                                  key: UniqueKey(),
+                                  onDismissed: (DismissDirection dd) {
+                                    Future<int> res =
+                                        databaseHelper.deleteDailyTask(i['id']);
+                                    res.then((result) {
+                                      setState(() {
+                                        deletedIDDaily = i['id'];
+                                      });
+                                    });
+                                    /*if (dd == DismissDirection.startToEnd) {
                                   print("end task");
                                 }*/
-                              },
-                            )
-                          : resetDeletedIDDaily());
+                                  },
+                                )
+                              : resetDeletedIDDaily());
                 },
               )
             : Center(
@@ -266,6 +293,7 @@ class _TaskListState extends State<TaskList> {
     }));
     if (result) {
       updateListView();
+      updateDailyListView();
     }
   }
 
