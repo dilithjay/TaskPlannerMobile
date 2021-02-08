@@ -24,7 +24,9 @@ class _TaskListState extends State<TaskList> {
   List<dynamic> dailyTasks = [];
   int _selectedIndex = 0;
   Set<String> dateList = {};
+  Set<String> historyDateList = {};
   int deletedIDDaily;
+  int deletedIDHistory;
   int deletedID;
 
   void _onItemTapped(int index) {
@@ -46,7 +48,11 @@ class _TaskListState extends State<TaskList> {
       appBar: AppBar(
         title: Text("Tasks"),
       ),
-      body: _selectedIndex == 0 ? getFutureBuilder() : getDailyFutureBuilder(),
+      body: _selectedIndex == 0
+          ? getFutureBuilder()
+          : _selectedIndex == 1
+              ? getDailyFutureBuilder()
+              : getHistoryFutureBuilder(),
       floatingActionButton: FloatingActionButton(
         onPressed: navigateToDetail,
         child: Icon(Icons.add),
@@ -56,6 +62,7 @@ class _TaskListState extends State<TaskList> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.all_out), label: "General"),
           BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "Today"),
+          BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "History"),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.lightBlue,
@@ -97,12 +104,14 @@ class _TaskListState extends State<TaskList> {
                             padding: EdgeInsets.all(10),
                             child: Row(
                               children: [
-                                Text(
-                                  date == null ? "Mon" : date.substring(0, 3),
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                                date == null
+                                    ? SizedBox.shrink()
+                                    : Text(
+                                        date.substring(0, 3),
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold),
+                                      ),
                                 date == null
                                     ? SizedBox.shrink()
                                     : Text("  " + (date.substring(3)))
@@ -112,7 +121,6 @@ class _TaskListState extends State<TaskList> {
                           for (var i in lst)
                             deletedID != i['id']
                                 ? Dismissible(
-                                    direction: DismissDirection.endToStart,
                                     child: CheckboxListTile(
                                       value: checked[i['id'].toString()],
                                       onChanged: (bool val) {
@@ -128,6 +136,14 @@ class _TaskListState extends State<TaskList> {
                                       title: Text(i['task']),
                                     ),
                                     background: Container(
+                                      color: Colors.greenAccent[400],
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 20),
+                                      alignment:
+                                          AlignmentDirectional.centerStart,
+                                      child: Icon(Icons.done),
+                                    ),
+                                    secondaryBackground: Container(
                                       color: Colors.red,
                                       padding:
                                           EdgeInsets.symmetric(horizontal: 20),
@@ -140,9 +156,19 @@ class _TaskListState extends State<TaskList> {
                                           databaseHelper.deleteTask(i['id']);
                                       res.then((result) {
                                         todayTasks.remove(i);
-                                        setState(() {
-                                          deletedID = i['id'];
-                                        });
+                                        if (dd == DismissDirection.startToEnd) {
+                                          var res = databaseHelper
+                                              .insertHistoryTask(i);
+                                          res.then((result) {
+                                            setState(() {
+                                              deletedID = i['id'];
+                                            });
+                                          });
+                                        } else {
+                                          setState(() {
+                                            deletedID = i['id'];
+                                          });
+                                        }
                                       });
                                     },
                                   )
@@ -161,6 +187,111 @@ class _TaskListState extends State<TaskList> {
   SizedBox resetDeletedID() {
     deletedID = null;
     return SizedBox.shrink();
+  }
+
+  int getDateCount(List<Map<String, dynamic>> data) {
+    Set<String> dl = Set();
+    for (var i in data) {
+      if (!dl.contains(i['date'])) dl.add(i['date']);
+    }
+    this.dateList = dl;
+    return dateList.length;
+  }
+
+  Widget getHistoryFutureBuilder() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: databaseHelper.getHistoryMapList(),
+      initialData: List(),
+      builder: (context, snapshot) {
+        return snapshot.hasData
+            ? ListView.builder(
+                itemCount: getDateCountHistory(snapshot.data),
+                itemBuilder: (_, int position) {
+                  List<String> dates = historyDateList.toList();
+                  dates.sort();
+                  final String date = dates[position];
+                  List<Map<String, dynamic>> lst = [];
+                  for (var i in snapshot.data) {
+                    if (i['date'] == date) {
+                      lst.add(i);
+                    }
+                  }
+
+                  return Card(
+                      color: Colors.white,
+                      elevation: 2.0,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Row(
+                              children: [
+                                date == null
+                                    ? SizedBox.shrink()
+                                    : Text(
+                                        date.substring(0, 3),
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                date == null
+                                    ? SizedBox.shrink()
+                                    : Text("  " + (date.substring(3)))
+                              ],
+                            ),
+                          ),
+                          for (var i in lst)
+                            deletedIDHistory != i['id']
+                                ? Dismissible(
+                                    direction: DismissDirection.endToStart,
+                                    child: CheckboxListTile(
+                                      value: i['checked'] == 1,
+                                      onChanged: (bool val) {},
+                                      title: Text(i['task']),
+                                      activeColor: Colors.grey,
+                                    ),
+                                    background: Container(
+                                      color: Colors.red,
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 20),
+                                      alignment: AlignmentDirectional.centerEnd,
+                                      child: Icon(Icons.delete_outline),
+                                    ),
+                                    key: UniqueKey(),
+                                    onDismissed: (DismissDirection dd) {
+                                      var res = databaseHelper
+                                          .deleteHistoryTask(i['id']);
+                                      res.then((result) {
+                                        setState(() {
+                                          deletedIDHistory = i['id'];
+                                        });
+                                      });
+                                    },
+                                  )
+                                : resetDeletedIDHistory()
+                        ],
+                      ));
+                },
+              )
+            : Center(
+                child: CircularProgressIndicator(),
+              );
+      },
+    );
+  }
+
+  SizedBox resetDeletedIDHistory() {
+    deletedID = null;
+    return SizedBox.shrink();
+  }
+
+  int getDateCountHistory(List<Map<String, dynamic>> data) {
+    Set<String> dl = Set();
+    for (var i in data) {
+      if (!dl.contains(i['date'])) dl.add(i['date']);
+    }
+    this.historyDateList = dl;
+    return historyDateList.length;
   }
 
   Widget getDailyFutureBuilder() {
@@ -277,15 +408,6 @@ class _TaskListState extends State<TaskList> {
     });
   }
 
-  int getDateCount(List<Map<String, dynamic>> data) {
-    Set<String> dl = Set();
-    for (var i in data) {
-      if (!dl.contains(i['date'])) dl.add(i['date']);
-    }
-    this.dateList = dl;
-    return dateList.length;
-  }
-
   void navigateToDetail() async {
     bool result =
         await Navigator.push(context, MaterialPageRoute(builder: (context) {
@@ -322,9 +444,17 @@ class _TaskListState extends State<TaskList> {
     dbFuture.then((database) {
       var taskMap = databaseHelper.getDailyTaskMapList();
       taskMap.then((tasklist) {
-        setState(() {
-          this.dailyTasks = tasklist;
-        });
+        setState(() {});
+      });
+    });
+  }
+
+  void updateHistoryListView() {
+    final Future<Database> dbFuture = databaseHelper.initializeDatabase();
+    dbFuture.then((database) {
+      var taskMap = databaseHelper.getHistoryMapList();
+      taskMap.then((tasklist) {
+        setState(() {});
       });
     });
   }
