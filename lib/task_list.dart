@@ -80,6 +80,8 @@ class _TaskListState extends State<TaskList> {
             ? ListView.builder(
                 itemCount: getDateCount(snapshot.data),
                 itemBuilder: (_, int position) {
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    return Center(child: CircularProgressIndicator());
                   List<String> dates = dateList.toList();
                   dates.sort();
                   final String date = dates[position];
@@ -93,7 +95,7 @@ class _TaskListState extends State<TaskList> {
                   if (date != null &&
                       date.substring(4) == formatter.format(DateTime.now())) {
                     todayTasks = lst;
-                  }
+                  } else if (date == null) todayTasks = [];
 
                   return Card(
                       color: Colors.white,
@@ -347,12 +349,6 @@ class _TaskListState extends State<TaskList> {
                                     },
                                     title: Text(i['task']),
                                   ),
-                                  /*background: Container(
-                                color: Colors.greenAccent[400],
-                                padding: EdgeInsets.symmetric(horizontal: 20),
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Icon(Icons.done),
-                              ),*/
                                   background: Container(
                                     color: Colors.red,
                                     padding:
@@ -369,9 +365,6 @@ class _TaskListState extends State<TaskList> {
                                         deletedIDDaily = i['id'];
                                       });
                                     });
-                                    /*if (dd == DismissDirection.startToEnd) {
-                                  print("end task");
-                                }*/
                                   },
                                 )
                               : resetDeletedIDDaily());
@@ -431,7 +424,6 @@ class _TaskListState extends State<TaskList> {
           else
             tid[i['date']] = [i];
         }
-
         setState(() {
           this.tasksInDate = tid;
         });
@@ -442,10 +434,7 @@ class _TaskListState extends State<TaskList> {
   void updateDailyListView() {
     final Future<Database> dbFuture = databaseHelper.initializeDatabase();
     dbFuture.then((database) {
-      var taskMap = databaseHelper.getDailyTaskMapList();
-      taskMap.then((tasklist) {
-        setState(() {});
-      });
+      setState(() {});
     });
   }
 
