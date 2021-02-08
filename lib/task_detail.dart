@@ -44,12 +44,15 @@ class _TaskDetailState extends State<TaskDetail> {
         padding: EdgeInsets.all(10),
         child: ListView(
           children: <Widget>[
-            TextField(
-              controller: _myController,
-              decoration: InputDecoration(
-                  labelText: 'Task',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0))),
+            Padding(
+              padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
+              child: TextField(
+                controller: _myController,
+                decoration: InputDecoration(
+                    labelText: 'Task',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(5.0))),
+              ),
             ),
             Row(
               children: [
