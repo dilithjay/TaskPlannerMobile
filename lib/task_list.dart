@@ -46,7 +46,7 @@ class _TaskListState extends State<TaskList> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Tasks"),
+        title: Text("Task Planner"),
       ),
       body: _selectedIndex == 0
           ? getFutureBuilder()
@@ -62,7 +62,7 @@ class _TaskListState extends State<TaskList> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.all_out), label: "General"),
           BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "Today"),
-          BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "History"),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.lightBlue,
@@ -306,13 +306,15 @@ class _TaskListState extends State<TaskList> {
             ? ListView.builder(
                 itemCount: snapshot.data.length + n,
                 itemBuilder: (_, int position) {
-                  List<Map<String, dynamic>> lst = [];
-                  for (var i in snapshot.data) {
-                    lst.add(i);
+                  if (snapshot.data[0].containsKey('date'))
+                    return SizedBox.shrink();
+                  var i;
+                  if (position >= n) {
+                    i = snapshot.data[position - n];
                     dailyChecked[i['id'].toString()] = (i['checked'] == 1);
+                  } else {
+                    i = todayTasks[position];
                   }
-                  var i =
-                      position < n ? todayTasks[position] : lst[position - n];
                   return position < n
                       ? Card(
                           color: Colors.white,
