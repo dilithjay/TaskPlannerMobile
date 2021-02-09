@@ -17,20 +17,33 @@ class _TaskListState extends State<TaskList> {
   final DateFormat formatter = DateFormat('dd-MM-yyyy');
   String _lastUpdate;
   Map<String, dynamic> tasksInDate;
-  int count = 0;
-  ListView cardList;
+
+  // For keeping track of checked state of general and daily tasks
   Map<String, bool> checked = Map();
   Map<String, bool> dailyChecked = Map();
-  List<Map<String, dynamic>> todayTasks = [];
-  List<dynamic> dailyTasks = [];
+
+  // For keeping track of currently opened tab
   int _selectedIndex = 0;
+
+  // For keeping track of tasks scheduled for the current date
+  List<Map<String, dynamic>> todayTasks = [];
+
+  // To keep track of dates containing scheduled tasks (for showing as cards)
   Set<String> dateList = {};
   Set<String> historyDateList = {};
+
+  // Used to identify when the next day arrives while the app is opened
+  String lastDate;
+
+  // To keep track of the deletedID until removed from database
   int deletedIDDaily;
   int deletedIDHistory;
   int deletedID;
+
+  // For identifying the focus for highlighter coachmark tutorial
   GlobalKey _fabKey = GlobalObjectKey("fab");
   GlobalKey _bnbKey = GlobalObjectKey("bnb");
+
   TextStyle tuteTextStyle = const TextStyle(
     fontSize: 20.0,
     color: Colors.white,
@@ -44,11 +57,19 @@ class _TaskListState extends State<TaskList> {
 
   @override
   Widget build(BuildContext context) {
+    // Runs when app is first opened after being closed
     if (tasksInDate == null) {
       tasksInDate = Map();
+      lastDate = formatter.format(DateTime.now());
       updateDailyListView();
       updateListView();
       resetDailyTasks();
+    }
+
+    // Runs if the date changes while the app is open
+    if (formatter.format(DateTime.now()) != lastDate) {
+      resetDailyTasks();
+      lastDate = formatter.format(DateTime.now());
     }
 
     return Scaffold(
@@ -94,7 +115,6 @@ class _TaskListState extends State<TaskList> {
     CoachMark coachMarkFAB = CoachMark();
     RenderBox target = _bnbKey.currentContext.findRenderObject();
 
-    // you can change the shape of the mark
     Rect markRect = target.localToGlobal(Offset.zero) & target.size;
     markRect = markRect.inflate(5.0);
 
@@ -338,7 +358,8 @@ class _TaskListState extends State<TaskList> {
                       lst.add(i);
                     }
                   }
-
+                  if (lst.length > 0 && lst[position].containsKey('streak'))
+                    return SizedBox.shrink();
                   return Card(
                       color: Colors.white,
                       elevation: 2.0,
@@ -426,7 +447,8 @@ class _TaskListState extends State<TaskList> {
             ? ListView.builder(
                 itemCount: snapshot.data.length + n,
                 itemBuilder: (_, int position) {
-                  if (snapshot.data[0].containsKey('date'))
+                  if (snapshot.data.length == 0 ||
+                      snapshot.data[0].containsKey('date'))
                     return SizedBox.shrink();
                   var i;
                   if (position >= n) {
@@ -458,6 +480,17 @@ class _TaskListState extends State<TaskList> {
                               ? Dismissible(
                                   direction: DismissDirection.endToStart,
                                   child: CheckboxListTile(
+                                    secondary: Container(
+                                      width: 40.0,
+                                      height: 40.0,
+                                      decoration: new BoxDecoration(
+                                        color: Colors.amber[100],
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Text(i['streak'].toString()),
+                                      ),
+                                    ),
                                     value: dailyChecked[i['id'].toString()],
                                     onChanged: (bool val) {
                                       Future<int> result =
@@ -466,7 +499,7 @@ class _TaskListState extends State<TaskList> {
                                       result.then((res) {});
 
                                       setState(() {
-                                        checked[i['id'].toString()] = val;
+                                        dailyChecked[i['id'].toString()] = val;
                                       });
                                     },
                                     title: Text(i['task']),
@@ -511,14 +544,37 @@ class _TaskListState extends State<TaskList> {
         String day = prefs.getString('day');
         if (day == null) {
           _lastUpdate = formatter.format(DateTime.now());
-          prefs.setString('day', _lastUpdate);
         } else {
           _lastUpdate = day;
-          if (DateTime.now().isAfter(formatter.parse(_lastUpdate))) {
-            Future<int> res = databaseHelper.resetDailyTasks();
-            res.then((result) {});
+          int difference = formatter
+              .parse(formatter.format(DateTime.now()))
+              .difference(formatter.parse(_lastUpdate))
+              .inDays;
+          if (difference == 1) {
+            var dTasks = databaseHelper.getDailyTaskMapList();
+            dTasks.then((dailyTasks) {
+              for (var i in dailyTasks) {
+                if (i['checked'] == 1) {
+                  databaseHelper.changeStreak(i['id'], true);
+                } else {
+                  databaseHelper.changeStreak(i['id'], false);
+                }
+              }
+              Future<int> res = databaseHelper.resetDailyTasks();
+              res.then((result) {});
+            });
+          } else if (difference > 1) {
+            var dTasks = databaseHelper.getDailyTaskMapList();
+            dTasks.then((dailyTasks) {
+              for (var i in dailyTasks) {
+                databaseHelper.changeStreak(i['id'], false);
+              }
+              Future<int> res = databaseHelper.resetDailyTasks();
+              res.then((result) {});
+            });
           }
         }
+        prefs.setString('day', formatter.format(DateTime.now()));
       });
     });
   }

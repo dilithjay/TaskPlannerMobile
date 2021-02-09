@@ -41,7 +41,7 @@ class DatabaseHelper {
     await db.execute(
         'CREATE table $taskTable (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, checked INTEGER, date TEXT)');
     await db.execute(
-        'CREATE table $dailyTaskTable (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, checked INTEGER)');
+        'CREATE table $dailyTaskTable (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, checked INTEGER, streak INTEGER)');
     await db.execute(
         'CREATE table $historyTable (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT, checked INTEGER, date TEXT)');
   }
@@ -73,7 +73,8 @@ class DatabaseHelper {
   // Insert new daily task
   Future<int> insertDailyTask(String task, int checked) async {
     Database db = await this.database;
-    return await db.insert(dailyTaskTable, {'task': task, 'checked': checked});
+    return await db.insert(
+        dailyTaskTable, {'task': task, 'checked': checked, 'streak': 0});
   }
 
   // Insert new history task
@@ -100,7 +101,7 @@ class DatabaseHelper {
     return await db.delete(historyTable, where: 'id = ?', whereArgs: [id]);
   }
 
-  // Change check state of checkbox of daily task
+  // Change check state of checkbox of general task
   Future<int> changeCheckTask(int id, int state) async {
     var db = await this.database;
     Map<String, dynamic> update = {'checked': state};
@@ -111,6 +112,16 @@ class DatabaseHelper {
   Future<int> changeCheckDailyTask(int id, int state) async {
     var db = await this.database;
     Map<String, dynamic> update = {'checked': state};
+    return await db
+        .update(dailyTaskTable, update, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Update streak of daily task; (increment == false => reset streak to 0)
+  Future<int> changeStreak(int id, bool increment) async {
+    var db = await this.database;
+    int streak = (await db
+        .query(dailyTaskTable, where: 'id = ?', whereArgs: [id]))[0]['streak'];
+    Map<String, dynamic> update = {'streak': increment ? streak + 1 : 0};
     return await db
         .update(dailyTaskTable, update, where: 'id = ?', whereArgs: [id]);
   }
