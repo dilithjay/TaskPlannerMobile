@@ -5,7 +5,7 @@ import 'dart:async';
 import 'database_helper.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:highlighter_coachmark/highlighter_coachmark.dart';
+import 'onboarding.dart';
 
 class TaskList extends StatefulWidget {
   @override
@@ -39,10 +39,6 @@ class _TaskListState extends State<TaskList> {
   int deletedIDDaily;
   int deletedIDHistory;
   int deletedID;
-
-  // For identifying the focus for highlighter coachmark tutorial
-  GlobalKey _fabKey = GlobalObjectKey("fab");
-  GlobalKey _bnbKey = GlobalObjectKey("bnb");
 
   TextStyle tuteTextStyle = const TextStyle(
     fontSize: 20.0,
@@ -81,7 +77,7 @@ class _TaskListState extends State<TaskList> {
             ),
             IconButton(
               icon: Icon(Icons.help),
-              onPressed: showBNB,
+              onPressed: navigateToTutorial,
             )
           ],
         ),
@@ -92,13 +88,11 @@ class _TaskListState extends State<TaskList> {
               ? getDailyFutureBuilder()
               : getHistoryFutureBuilder(),
       floatingActionButton: FloatingActionButton(
-        key: _fabKey,
         onPressed: navigateToDetail,
         child: Icon(Icons.add),
         tooltip: 'Add Task',
       ),
       bottomNavigationBar: BottomNavigationBar(
-        key: _bnbKey,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.all_out), label: "General"),
           BottomNavigationBarItem(icon: Icon(Icons.view_day), label: "Today"),
@@ -108,106 +102,6 @@ class _TaskListState extends State<TaskList> {
         selectedItemColor: Colors.lightBlue,
         onTap: _onItemTapped,
       ),
-    );
-  }
-
-  void showBNB() {
-    CoachMark coachMarkFAB = CoachMark();
-    RenderBox target = _bnbKey.currentContext.findRenderObject();
-
-    Rect markRect = target.localToGlobal(Offset.zero) & target.size;
-    markRect = markRect.inflate(5.0);
-
-    coachMarkFAB.show(
-      targetContext: _fabKey.currentContext,
-      markRect: markRect,
-      markShape: BoxShape.rectangle,
-      children: [
-        Padding(
-            padding: EdgeInsets.all(10),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      "General  ",
-                      style: TextStyle(fontSize: 20, color: Colors.lightBlue),
-                    ),
-                    Icon(
-                      Icons.all_out,
-                      color: Colors.lightBlue,
-                    )
-                  ],
-                  mainAxisAlignment: MainAxisAlignment.center,
-                ),
-                Text(
-                  "    View all one-time tasks.\n",
-                  style: tuteTextStyle,
-                ),
-                Row(
-                  children: [
-                    Text(
-                      "Today  ",
-                      style: TextStyle(fontSize: 20, color: Colors.lightBlue),
-                    ),
-                    Icon(
-                      Icons.view_day,
-                      color: Colors.lightBlue,
-                    )
-                  ],
-                  mainAxisAlignment: MainAxisAlignment.center,
-                ),
-                Text(
-                  "    View all tasks for today.\n",
-                  style: tuteTextStyle,
-                ),
-                Row(
-                  children: [
-                    Text(
-                      "History  ",
-                      style: TextStyle(fontSize: 20, color: Colors.lightBlue),
-                    ),
-                    Icon(
-                      Icons.history,
-                      color: Colors.lightBlue,
-                    )
-                  ],
-                  mainAxisAlignment: MainAxisAlignment.center,
-                ),
-                Text(
-                  "    View all ended tasks.\n",
-                  style: tuteTextStyle,
-                ),
-              ],
-              mainAxisAlignment: MainAxisAlignment.center,
-            ))
-      ],
-      duration: null,
-      onClose: () => Timer(Duration(milliseconds: 100), () => showFAB()),
-    );
-  }
-
-  void showFAB() {
-    CoachMark coachMarkFAB = CoachMark();
-    RenderBox target = _fabKey.currentContext.findRenderObject();
-
-    // you can change the shape of the mark
-    Rect markRect = target.localToGlobal(Offset.zero) & target.size;
-    markRect = Rect.fromCircle(
-        center: markRect.center, radius: markRect.longestSide * 0.6);
-
-    coachMarkFAB.show(
-      targetContext: _fabKey.currentContext,
-      markRect: markRect,
-      children: [
-        Center(
-          child: Padding(
-            padding: EdgeInsets.all(10),
-            child: Text("Press the button to add a task", style: tuteTextStyle),
-          ),
-        )
-      ],
-      duration: null,
     );
   }
 
@@ -583,6 +477,17 @@ class _TaskListState extends State<TaskList> {
     bool result =
         await Navigator.push(context, MaterialPageRoute(builder: (context) {
       return TaskDetail();
+    }));
+    if (result) {
+      updateListView();
+      updateDailyListView();
+    }
+  }
+
+  void navigateToTutorial() async {
+    bool result =
+        await Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return OnBoardingPage();
     }));
     if (result) {
       updateListView();
