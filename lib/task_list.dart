@@ -117,7 +117,8 @@ class _TaskListState extends State<TaskList> {
                   if (snapshot.connectionState == ConnectionState.waiting)
                     return Center(child: CircularProgressIndicator());
                   List<String> dates = dateList.toList();
-                  dates.sort();
+                  dates
+                      .sort((a, b) => a.substring(4).compareTo(b.substring(4)));
                   final String date = dates[position];
                   List<Map<String, dynamic>> lst = [];
                   for (var i in snapshot.data) {
@@ -244,7 +245,8 @@ class _TaskListState extends State<TaskList> {
                 itemCount: getDateCountHistory(snapshot.data),
                 itemBuilder: (_, int position) {
                   List<String> dates = historyDateList.toList();
-                  dates.sort();
+                  dates
+                      .sort((a, b) => a.substring(4).compareTo(b.substring(4)));
                   final String date = dates[position];
                   List<Map<String, dynamic>> lst = [];
                   for (var i in snapshot.data) {
